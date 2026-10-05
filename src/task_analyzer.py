@@ -40,6 +40,7 @@ def _validate_task(task: dict[str, Any]) -> None:
     }
 
     missing_fields = required_fields - task.keys()
+
     if missing_fields:
         fields = ", ".join(sorted(missing_fields))
         raise TaskValidationError(
@@ -47,10 +48,14 @@ def _validate_task(task: dict[str, Any]) -> None:
         )
 
     if task["id"] is None or not isinstance(task["id"], (str, int)):
-        raise TaskValidationError("id deve ser uma string ou inteiro não nulo.")
+        raise TaskValidationError(
+            "id deve ser uma string ou inteiro não nulo."
+        )
 
     if not isinstance(task["title"], str) or not task["title"].strip():
-        raise TaskValidationError("title deve ser uma string não vazia.")
+        raise TaskValidationError(
+            "title deve ser uma string não vazia."
+        )
 
     if task["priority"] not in VALID_PRIORITIES:
         raise TaskValidationError(
@@ -77,9 +82,11 @@ def _validate_task(task: dict[str, Any]) -> None:
             "Tarefas concluídas devem possuir completed_at."
         )
 
-    completed_at = None
     if completed_at_value is not None:
-        completed_at = _parse_date(completed_at_value, "completed_at")
+        completed_at = _parse_date(
+            completed_at_value,
+            "completed_at",
+        )
 
         if completed_at < created_at:
             raise TaskValidationError(
@@ -89,7 +96,9 @@ def _validate_task(task: dict[str, Any]) -> None:
     cpu_usage = task.get("cpu_usage_percent")
 
     if cpu_usage is not None:
-        if not isinstance(cpu_usage, (int, float)) or isinstance(cpu_usage, bool):
+        if not isinstance(cpu_usage, (int, float)) or isinstance(
+            cpu_usage, bool
+        ):
             raise TaskValidationError(
                 "cpu_usage_percent deve ser numérico."
             )
@@ -100,15 +109,25 @@ def _validate_task(task: dict[str, Any]) -> None:
             )
 
 
-def _completion_time_hours(task: dict[str, Any]) -> float | None:
+def _completion_time_hours(
+    task: dict[str, Any],
+) -> float | None:
     """Calculate completion time in hours for a completed task."""
     if task["completed_at"] is None:
         return None
 
-    created_at = _parse_date(task["created_at"], "created_at")
-    completed_at = _parse_date(task["completed_at"], "completed_at")
+    created_at = _parse_date(
+        task["created_at"],
+        "created_at",
+    )
+    completed_at = _parse_date(
+        task["completed_at"],
+        "completed_at",
+    )
 
-    return (completed_at - created_at).total_seconds() / 3600
+    return (
+        completed_at - created_at
+    ).total_seconds() / 3600
 
 
 def _is_delayed(task: dict[str, Any]) -> bool:
@@ -116,38 +135,55 @@ def _is_delayed(task: dict[str, Any]) -> bool:
     if task["completed_at"] is None:
         return False
 
-    completed_at = _parse_date(task["completed_at"], "completed_at")
-    due_date = _parse_date(task["due_date"], "due_date")
+    completed_at = _parse_date(
+        task["completed_at"],
+        "completed_at",
+    )
+    due_date = _parse_date(
+        task["due_date"],
+        "due_date",
+    )
 
     return completed_at > due_date
 
 
 def _calculate_group_metrics(
     tasks: list[dict[str, Any]],
-) -> dict[str, float | int]:
-    """Calculate completion and delay metrics for a group of tasks."""
+) -> dict[str, float | int | None]:
+    """Calculate completion and delay metrics for a task group."""
     completed_tasks = [
-        task for task in tasks if task["status"] == "concluida"
+        task
+        for task in tasks
+        if task["status"] == "concluida"
     ]
 
     completion_times = [
         completion_time
         for task in completed_tasks
-        if (completion_time := _completion_time_hours(task)) is not None
+        if (
+            completion_time := _completion_time_hours(task)
+        ) is not None
     ]
 
     delayed_tasks = [
-        task for task in completed_tasks if _is_delayed(task)
+        task
+        for task in completed_tasks
+        if _is_delayed(task)
     ]
 
     average_completion = (
         round(mean(completion_times), 2)
         if completion_times
-        else 0.0
+        else None
     )
 
     delay_rate = (
-        round(len(delayed_tasks) / len(completed_tasks) * 100, 2)
+        round(
+            len(delayed_tasks)
+            / len(completed_tasks)
+            * 100,
+            2,
+        )
         if completed_tasks
         else 0.0
     )
@@ -171,19 +207,21 @@ def _calculate_resource_metrics(
 
     if not cpu_values:
         return {
-            "media_cpu_percent": None,
+            "cpu_media_percentual": None,
             "alerta_cpu": False,
         }
 
     average_cpu = round(mean(cpu_values), 2)
 
     return {
-        "media_cpu_percent": average_cpu,
+        "cpu_media_percentual": average_cpu,
         "alerta_cpu": average_cpu >= 80,
     }
 
 
-def analyze_tasks(tasks: list[dict[str, Any]]) -> dict[str, Any]:
+def analyze_tasks(
+    tasks: list[dict[str, Any]],
+) -> dict[str, Any]:
     """Analyze tasks and return productivity metrics.
 
     Args:
@@ -196,25 +234,36 @@ def analyze_tasks(tasks: list[dict[str, Any]]) -> dict[str, Any]:
         TaskValidationError: If the input or any task violates the SDD.
     """
     if not isinstance(tasks, list) or not tasks:
-        raise TaskValidationError("A lista de tarefas não pode ser vazia.")
+        raise TaskValidationError(
+            "A lista de tarefas não pode ser vazia."
+        )
 
     for task in tasks:
         if not isinstance(task, dict):
-            raise TaskValidationError("Cada tarefa deve ser um dicionário.")
+            raise TaskValidationError(
+                "Cada tarefa deve ser um dicionário."
+            )
+
         _validate_task(task)
 
     completed_tasks = [
-        task for task in tasks if task["status"] == "concluida"
+        task
+        for task in tasks
+        if task["status"] == "concluida"
     ]
 
     delayed_tasks = [
-        task for task in completed_tasks if _is_delayed(task)
+        task
+        for task in completed_tasks
+        if _is_delayed(task)
     ]
 
     completion_times = [
         completion_time
         for task in completed_tasks
-        if (completion_time := _completion_time_hours(task)) is not None
+        if (
+            completion_time := _completion_time_hours(task)
+        ) is not None
     ]
 
     average_completion = (
@@ -224,7 +273,12 @@ def analyze_tasks(tasks: list[dict[str, Any]]) -> dict[str, Any]:
     )
 
     delay_rate = (
-        round(len(delayed_tasks) / len(completed_tasks) * 100, 2)
+        round(
+            len(delayed_tasks)
+            / len(completed_tasks)
+            * 100,
+            2,
+        )
         if completed_tasks
         else 0.0
     )
@@ -233,10 +287,13 @@ def analyze_tasks(tasks: list[dict[str, Any]]) -> dict[str, Any]:
 
     for priority in PRIORITIES:
         priority_tasks = [
-            task for task in tasks if task["priority"] == priority
+            task
+            for task in tasks
+            if task["priority"] == priority
         ]
-        indicators_by_priority[priority] = _calculate_group_metrics(
-            priority_tasks
+
+        indicators_by_priority[priority] = (
+            _calculate_group_metrics(priority_tasks)
         )
 
     return {
@@ -248,3 +305,4 @@ def analyze_tasks(tasks: list[dict[str, Any]]) -> dict[str, Any]:
         "indicadores_por_prioridade": indicators_by_priority,
         "recursos": _calculate_resource_metrics(tasks),
     }
+
