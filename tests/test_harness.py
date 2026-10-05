@@ -214,3 +214,44 @@ def test_scenario_5_high_average_cpu_activates_alert() -> None:
             "media",
             "pendente",
             "2026-08-01T08:00:00",
+            "2026-08-02T08:00:00",
+            None,
+            90.0,
+        ),
+    ]
+
+    result = analyze_tasks(tasks)
+
+    assert result["recursos"]["cpu_media_percentual"] == 87.5
+    assert result["recursos"]["alerta_cpu"] is True
+
+
+def test_pending_tasks_return_zero_delay_rate() -> None:
+    """Validate metrics when there are no completed tasks."""
+    tasks = [
+        build_task(
+            1,
+            "alta",
+            "pendente",
+            "2026-08-01T08:00:00",
+            "2026-08-02T08:00:00",
+            None,
+            30.0,
+        ),
+        build_task(
+            2,
+            "media",
+            "em_andamento",
+            "2026-08-01T08:00:00",
+            "2026-08-03T08:00:00",
+            None,
+            40.0,
+        ),
+    ]
+
+    result = analyze_tasks(tasks)
+
+    assert result["total_tarefas_concluidas"] == 0
+    assert result["total_tarefas_atrasadas"] == 0
+    assert result["tempo_medio_conclusao_horas"] == 0.0
+    assert result["taxa_atraso_percentual"] == 0.0
