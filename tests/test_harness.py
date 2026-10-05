@@ -3,10 +3,14 @@
 Tests the acceptance scenarios and edge cases defined in the SDD.
 """
 
+import sys
+from pathlib import Path
+
 import pytest
 
-from src.task_analyzer import TaskValidationError, analyze_tasks
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from src.task_analyzer import TaskValidationError, analyze_tasks
 
 def build_task(
     task_id: int,
