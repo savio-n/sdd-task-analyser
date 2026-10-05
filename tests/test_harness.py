@@ -213,4 +213,4 @@ def test_scenario_5_high_average_cpu_activates_alert() -> None:
             2,
             "media",
             "pendente",
-            "2026-08-01T08:00:0
+            "2026-08-01T08:00:00",
