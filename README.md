@@ -64,3 +64,23 @@ A solução será validada por meio de um **Test Harness desenvolvido com pytest
 **Sávio Arbuês Abrahão Nery**
 
 Ciência de Dados e Machine Learning
+
+## Execução com Docker
+
+Para construir a imagem e executar os testes automatizados:
+
+- docker compose build
+- docker compose run --rm tests
+
+Para executar os testes diretamente pela imagem:
+
+- docker build -t sdd-task-analyser .
+- docker run --rm sdd-task-analyser
+
+## Integração contínua
+
+O GitHub Actions executa os testes com pytest, constrói a imagem Docker e executa os testes no contêiner em pushes e pull requests direcionados às branches main e develop.
+
+## Governança e ética
+
+O relatório de governança, segurança e ética no uso de Inteligência Artificial está disponível em docs/governance_ethics_report.md.
